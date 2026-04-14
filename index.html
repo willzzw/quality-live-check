@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>优质店播自查工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(180deg, #FFF5F5 0%, #f5f5f5 300px);
+            color: #333;
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+        .header {
+            background: linear-gradient(135deg, #FF2442 0%, #FF6B7A 100%);
+            color: white;
+            padding: 28px 16px 24px;
+            text-align: center;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+        .header p { font-size: 13px; opacity: 0.85; }
+        .container { padding: 16px; max-width: 480px; margin: 0 auto; }
+
+        /* 搜索框 */
+        .search-box {
+            background: white;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 4px 16px rgba(255,36,66,0.1);
+            margin-bottom: 16px;
+        }
+        .search-input-wrap { display: flex; gap: 8px; }
+        .search-input {
+            flex: 1;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #fafafa;
+        }
+        .search-input:focus { border-color: #FF2442; background: white; }
+        .search-btn {
+            background: #FF2442;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 22px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+        .search-btn:active { opacity: 0.8; }
+        .search-btn:disabled { background: #ddd; }
+
+        /* 搜索结果列表 */
+        .search-results {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            margin-bottom: 16px;
+            overflow: hidden;
+            display: none;
+        }
+        .search-results.active { display: block; }
+        .result-title {
+            padding: 14px 16px 10px;
+            font-size: 13px;
+            color: #999;
+        }
+        .result-item {
+            padding: 14px 16px;
+            border-top: 1px solid #f5f5f5;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+        }
+        .result-item:active { background: #FFF5F5; }
+        .result-item .name { font-size: 15px; font-weight: 500; }
+        .result-item .industry { font-size: 12px; color: #999; margin-top: 3px; }
+        .result-item .arrow { color: #ccc; font-size: 20px; }
+
+        /* 错误提示 */
+        .error-msg {
+            background: #FFF0F0;
+            color: #FF2442;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 10px;
+            display: none;
+        }
+        .error-msg.active { display: block; }
+
+        /* 任务结果页 */
+        .result-page { display: none; }
+        .result-page.active { display: block; }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #FF2442;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 14px;
+            border: none;
+            background: none;
+            padding: 8px 0;
+        }
+        .shop-card {
+            background: white;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            margin-bottom: 16px;
+        }
+        .shop-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+        .shop-industry { font-size: 13px; color: #999; }
+        .score-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .score-bar {
+            flex: 1;
+            background: #f0f0f0;
+            border-radius: 6px;
+            height: 10px;
+            overflow: hidden;
+        }
+        .score-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.6s ease;
+        }
+        .score-text { font-size: 16px; font-weight: 600; white-space: nowrap; }
+        .quality-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+            font-weight: 500;
+        }
+
+        /* 任务列表 */
+        .task-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin: 20px 0 10px;
+        }
+        .task-list { display: flex; flex-direction: column; gap: 10px; }
+        .task-item {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        .task-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .task-header:active { background: #fafafa; }
+        .task-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .task-icon.done { background: #E8F8E8; color: #27AE60; }
+        .task-icon.not-done { background: #FFF0F0; color: #FF2442; }
+        .task-info { flex: 1; }
+        .task-name { font-size: 15px; font-weight: 500; }
+        .task-detail { font-size: 12px; color: #999; margin-top: 3px; }
+        .task-arrow {
+            color: #ccc;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+        .task-arrow.expanded { transform: rotate(90deg); }
+        .task-advice {
+            display: none;
+            padding: 0 16px 18px;
+            border-top: 1px solid #f5f5f5;
+        }
+        .task-advice.active { display: block; }
+        .task-advice h4 {
+            font-size: 13px;
+            color: #FF2442;
+            font-weight: 600;
+            margin: 12px 0 8px;
+        }
+        .task-advice ol {
+            padding-left: 18px;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.9;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            font-size: 14px;
+        }
+        .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+
+        .footer {
+            text-align: center;
+            padding: 24px;
+            color: #ccc;
+            font-size: 12px;
+        }
+        .demo-badge {
+            display: inline-block;
+            background: #FFA500;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🎋 优质店播自查工具</h1>
+    <p>输入店铺名称，查看今日任务完成情况</p>
+</div>
+
+<div class="container">
+    <!-- 搜索页 -->
+    <div id="searchPage">
+        <div class="search-box">
+            <div class="search-input-wrap">
+                <input type="text" class="search-input" id="searchInput" placeholder="输入店铺名称搜索..." autocomplete="off">
+                <button class="search-btn" id="searchBtn" onclick="doSearch()">搜索</button>
+            </div>
+        </div>
+
+        <div class="search-results" id="searchResults">
+            <div class="result-title" id="resultTitle"></div>
+            <div id="resultList"></div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+            <div class="emoji">🔍</div>
+            <div>输入店铺名称开始搜索</div>
+        </div>
+    </div>
+
+    <!-- 结果页 -->
+    <div class="result-page" id="resultPage">
+        <button class="back-btn" onclick="goBack()">← 返回搜索</button>
+
+        <div class="shop-card">
+            <div class="shop-name" id="rShopName"></div>
+            <div class="shop-industry" id="rIndustry"></div>
+            <div class="score-row">
+                <div class="score-bar"><div class="score-fill" id="scoreFill"></div></div>
+                <div class="score-text" id="scoreText"></div>
+            </div>
+        </div>
+
+        <div class="task-list" id="taskList"></div>
+    </div>
+</div>
+
+
+
+<div class="footer">优质店播自查工具 · 数据每日更新</div>
+
+<script>
+// ============ 模拟数据（MVP阶段使用，正式环境替换为后端API） ============
+const MERCHANT_DATA = {
+    date: "2026-04-14",
+    merchants: [
+        {
+            seller_id: "100001", shop_name: "翠玉轩珠宝旗舰店", industry: "文玩玉翠",
+            verify_code: "1234", is_quality_npl_seller: 0, live_dgmv: 25680,
+            tasks: {
+                multi_cover:   { done: 1, detail: "近7天已使用多封面直播卡" },
+                fans_growth:   { done: 1, detail: "近7天涨粉 186 / 阈值 100" },
+                normal_note:   { done: 0, detail: "近7天发布 1 篇 / 阈值 2 篇" },
+                promo_note:    { done: 1, detail: "直播预告笔记 2 篇" },
+                marketing_tool:{ done: 0, detail: "今日未使用任何营销工具（优惠券/抽奖/秒杀）" }
+            }
+        },
+        {
+            seller_id: "100002", shop_name: "玉石世家官方店", industry: "文玩玉翠",
+            verify_code: "5678", is_quality_npl_seller: 1, live_dgmv: 89320,
+            tasks: {
+                multi_cover:   { done: 1, detail: "近7天已使用多封面直播卡" },
+                fans_growth:   { done: 1, detail: "近7天涨粉 312 / 阈值 100" },
+                normal_note:   { done: 1, detail: "近7天发布 5 篇 / 阈值 2 篇" },
+                promo_note:    { done: 1, detail: "直播预告笔记 3 篇" },
+                marketing_tool:{ done: 1, detail: "优惠券 3 次 · 抽奖 2 次 · 秒杀 1 次" }
+            }
+        },
+        {
+            seller_id: "100003", shop_name: "和田玉缘珠宝", industry: "文玩玉翠",
+            verify_code: "9012", is_quality_npl_seller: 0, live_dgmv: 8920,
+            tasks: {
+                multi_cover:   { done: 0, detail: "近7天未使用多封面直播卡" },
+                fans_growth:   { done: 0, detail: "近7天涨粉 45 / 阈值 100" },
+                normal_note:   { done: 1, detail: "近7天发布 3 篇 / 阈值 2 篇" },
+                promo_note:    { done: 0, detail: "直播预告笔记 0 篇" },
+                marketing_tool:{ done: 0, detail: "今日未使用任何营销工具" }
+            }
+        },
+        {
+            seller_id: "100004", shop_name: "翡翠阁珠宝专营", industry: "文玩玉翠",
+            verify_code: "3456", is_quality_npl_seller: 1, live_dgmv: 156200,
+            tasks: {
+                multi_cover:   { done: 1, detail: "近7天已使用多封面直播卡" },
+                fans_growth:   { done: 1, detail: "近7天涨粉 528 / 阈值 100" },
+                normal_note:   { done: 1, detail: "近7天发布 8 篇 / 阈值 2 篇" },
+                promo_note:    { done: 1, detail: "直播预告笔记 4 篇" },
+                marketing_tool:{ done: 1, detail: "优惠券 5 次 · 抽奖 3 次 · 秒杀 2 次" }
+            }
+        },
+        {
+            seller_id: "100005", shop_name: "灵玉坊工作室", industry: "文玩玉翠",
+            verify_code: "7890", is_quality_npl_seller: 0, live_dgmv: 32100,
+            tasks: {
+                multi_cover:   { done: 1, detail: "近7天已使用多封面直播卡" },
+                fans_growth:   { done: 1, detail: "近7天涨粉 145 / 阈值 100" },
+                normal_note:   { done: 0, detail: "近7天发布 0 篇 / 阈值 2 篇" },
+                promo_note:    { done: 1, detail: "直播预告笔记 1 篇" },
+                marketing_tool:{ done: 1, detail: "优惠券 2 次 · 抽奖 1 次" }
+            }
+        },
+        {
+            seller_id: "100006", shop_name: "璞玉天成旗舰店", industry: "文玩玉翠",
+            verify_code: "2345", is_quality_npl_seller: 0, live_dgmv: 12500,
+            tasks: {
+                multi_cover:   { done: 0, detail: "近7天未使用多封面直播卡" },
+                fans_growth:   { done: 0, detail: "近7天涨粉 32 / 阈值 100" },
+                normal_note:   { done: 0, detail: "近7天发布 1 篇 / 阈值 2 篇" },
+                promo_note:    { done: 0, detail: "直播预告笔记 0 篇" },
+                marketing_tool:{ done: 0, detail: "今日未使用任何营销工具" }
+            }
+        },
+        {
+            seller_id: "100007", shop_name: "翠玲珑翡翠珠宝", industry: "文玩玉翠",
+            verify_code: "6789", is_quality_npl_seller: 1, live_dgmv: 203500,
+            tasks: {
+                multi_cover:   { done: 1, detail: "近7天已使用多封面直播卡" },
+                fans_growth:   { done: 1, detail: "近7天涨粉 621 / 阈值 100" },
+                normal_note:   { done: 1, detail: "近7天发布 6 篇 / 阈值 2 篇" },
+                promo_note:    { done: 1, detail: "直播预告笔记 3 篇" },
+                marketing_tool:{ done: 1, detail: "优惠券 4 次 · 抽奖 4 次 · 秒杀 3 次" }
+            }
+        },
+        {
+            seller_id: "100008", shop_name: "玉满天下珠宝", industry: "文玩玉翠",
+            verify_code: "0123", is_quality_npl_seller: 0, live_dgmv: 45800,
+            tasks: {
+                multi_cover:   { done: 1, detail: "近7天已使用多封面直播卡" },
+                fans_growth:   { done: 0, detail: "近7天涨粉 98 / 阈值 100" },
+                normal_note:   { done: 1, detail: "近7天发布 2 篇 / 阈值 2 篇" },
+                promo_note:    { done: 0, detail: "直播预告笔记 0 篇" },
+                marketing_tool:{ done: 0, detail: "仅使用优惠券 1 次，未使用抽奖/秒杀" }
+            }
+        }
+    ]
+};
+
+// 建议动作库
+const TASK_ADVICE = {
+    multi_cover: {
+        title: "多封面直播卡",
+        advice: [
+            "准备 2-3 张不同场景的直播封面（货品特写 / 主播讲解 / 活动氛围）",
+            "在直播计划中设置多封面模式",
+            "测试不同封面的进房率，选择最优方案",
+            "封面要突出货品卖点和活动信息，避免过于花哨"
+        ]
+    },
+    fans_growth: {
+        title: "店播涨粉",
+        advice: [
+            "直播中每 30 分钟引导关注话术",
+            "设置关注专属权益：关注后可参与抽奖 / 领取优惠券",
+            "主页装修突出「关注」按钮",
+            "笔记联动引导关注直播间，形成种草→关注→进房的闭环",
+            "群聊运营：每 30 分钟引导一次 + 入群演示"
+        ]
+    },
+    normal_note: {
+        title: "普通笔记发布",
+        advice: [
+            "每周发布 2-3 篇普通笔记（图文/视频）",
+            "笔记类型：种草笔记 / 知识科普 / 产品展示 / 用户反馈",
+            "注意封面图和标题质量，提升点击率",
+            "播前蓄水：至少 3 篇笔记预热，提前 7 天开始",
+            "播中赛马：发布 5-10 篇笔记，系统自动赛马推荐",
+            "播后回流：发布 2-5 篇回流短视频，延续热度"
+        ]
+    },
+    promo_note: {
+        title: "引流笔记",
+        advice: [
+            "直播前发布预告笔记，挂载直播预约功能",
+            "开播前 6 小时内发布普通笔记引流",
+            "开播中同步发布笔记，实时引流进房",
+            "笔记中引导用户点击预约或直接进入直播间",
+            "笔记标题带上「直播中」「限时优惠」等关键词"
+        ]
+    },
+    marketing_tool: {
+        title: "营销工具",
+        advice: [
+            "直播中设置抽奖活动，每 30 分钟引导一次 + 入群演示",
+            "使用秒杀工具制造紧迫感（限量 / 限时）",
+            "发放直播间专属优惠券，提升转化率",
+            "善用福利品/引流品（占排品 10-20%）拉升互动",
+            "商品弹卡配合：塑品期每 5-30s 弹卡，开价期一直弹"
+        ]
+    }
+};
+
+const TASK_NAMES = {
+    multi_cover: "多封面直播卡",
+    fans_growth: "店播涨粉",
+    normal_note: "普通笔记发布",
+    promo_note: "引流笔记",
+    marketing_tool: "营销工具"
+};
+
+// ============ 逻辑 ============
+let selectedSeller = null;
+
+function doSearch() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) return;
+
+    const results = MERCHANT_DATA.merchants.filter(m =>
+        m.shop_name.toLowerCase().includes(q.toLowerCase())
+    );
+
+    const container = document.getElementById('searchResults');
+    const list = document.getElementById('resultList');
+    const title = document.getElementById('resultTitle');
+    const empty = document.getElementById('emptyState');
+
+    if (results.length > 0) {
+        empty.style.display = 'none';
+        container.classList.add('active');
+        title.textContent = `找到 ${results.length} 个匹配的店铺`;
+        list.innerHTML = results.map(r => `
+            <div class="result-item" onclick="selectSeller('${r.seller_id}')">
+                <div>
+                    <div class="name">${highlightMatch(r.shop_name, q)}</div>
+                    <div class="industry">${r.industry}</div>
+                </div>
+                <div class="arrow">›</div>
+            </div>
+        `).join('');
+    } else {
+        empty.style.display = 'block';
+        empty.innerHTML = '<div class="emoji">😔</div><div>没有找到匹配的店铺，请检查输入</div>';
+        container.classList.remove('active');
+    }
+}
+
+function selectSeller(sellerId) {
+    const merchant = MERCHANT_DATA.merchants.find(m => m.seller_id === sellerId);
+    if (!merchant) return;
+    showResult(merchant);
+}
+
+function showResult(merchant) {
+    document.getElementById('searchPage').style.display = 'none';
+    const page = document.getElementById('resultPage');
+    page.classList.add('active');
+
+    document.getElementById('rShopName').textContent = merchant.shop_name;
+    document.getElementById('rIndustry').textContent = `行业：${merchant.industry}`;
+
+    const doneCount = Object.values(merchant.tasks).filter(t => t.done).length;
+    const totalCount = Object.keys(merchant.tasks).length;
+    const pct = Math.round((doneCount / totalCount) * 100);
+
+    const fill = document.getElementById('scoreFill');
+    fill.style.width = pct + '%';
+    fill.style.background = pct === 100 ? '#27AE60' : pct >= 60 ? '#F39C12' : '#FF2442';
+    document.getElementById('scoreText').textContent = `${doneCount}/${totalCount} 达标`;
+
+    if (merchant.is_quality_npl_seller) {
+        document.getElementById('rShopName').innerHTML += ' <span class="quality-badge">🌟 优质店播</span>';
+    }
+
+    const list = document.getElementById('taskList');
+    let doneTasks = '';
+    let notDoneTasks = '';
+
+    for (const [key, name] of Object.entries(TASK_NAMES)) {
+        const task = merchant.tasks[key];
+        const isDone = !!task.done;
+        const html = `
+            <div class="task-item">
+                <div class="task-header" onclick="toggleAdvice('${key}')">
+                    <div class="task-icon ${isDone ? 'done' : 'not-done'}">${isDone ? '✓' : '!'}</div>
+                    <div class="task-info">
+                        <div class="task-name">${name}</div>
+                        <div class="task-detail">${task.detail}</div>
+                    </div>
+                    ${!isDone ? '<div class="task-arrow" id="arrow-' + key + '">›</div>' : ''}
+                </div>
+                ${!isDone ? `
+                <div class="task-advice" id="advice-${key}">
+                    <h4>💡 建议动作：</h4>
+                    <ol>${TASK_ADVICE[key].advice.map(a => `<li>${a}</li>`).join('')}</ol>
+                </div>
+                ` : ''}
+            </div>
+        `;
+        if (isDone) doneTasks += html; else notDoneTasks += html;
+    }
+
+    list.innerHTML =
+        (notDoneTasks ? `<div class="task-section-title">❌ 未完成任务（点击展开建议）</div>${notDoneTasks}` : '') +
+        (doneTasks ? `<div class="task-section-title">✅ 已完成任务</div>${doneTasks}` : '');
+}
+
+function toggleAdvice(key) {
+    const el = document.getElementById('advice-' + key);
+    const arrow = document.getElementById('arrow-' + key);
+    if (el) {
+        el.classList.toggle('active');
+        arrow.classList.toggle('expanded');
+    }
+}
+
+function goBack() {
+    document.getElementById('resultPage').classList.remove('active');
+    document.getElementById('searchPage').style.display = 'block';
+}
+
+function highlightMatch(text, query) {
+    const idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) return text;
+    return text.substring(0, idx) +
+        '<span style="color:#FF2442;font-weight:600">' + text.substring(idx, idx + query.length) + '</span>' +
+        text.substring(idx + query.length);
+}
+
+// 回车搜索
+document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+</script>
+
+</body>
+</html>
